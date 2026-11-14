@@ -1,0 +1,25 @@
+services:
+  nextjs:
+    build:
+      context: .
+      dockerfile: dockerfile.dev
+
+    ports:
+      - "3000:3000"
+
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - node_modules/
+            - .next/
+            - .git/
+            - .env*
+
+        - action: rebuild
+          path: package.json
+
+        - action: rebuild
+          path: package-lock.json

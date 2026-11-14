@@ -1,0 +1,32 @@
+services:
+  front:
+    build:
+      context: ../front
+      dockerfile: ../docker/nextjs/Dockerfile.dev
+
+    image: university-front:dev
+    container_name: university-front-dev
+
+    ports:
+      - "127.0.0.1:3000:3000"
+
+    environment:
+      NODE_ENV: development
+      WATCHPACK_POLLING: "true"
+
+    develop:
+      watch:
+        - action: sync
+          path: ./front
+          target: /app
+          ignore:
+            - node_modules/
+            - .next/
+            - package.json
+            - package-lock.json
+
+        - action: rebuild
+          path: ./front/package.json
+
+        - action: rebuild
+          path: ./front/package-lock.json
