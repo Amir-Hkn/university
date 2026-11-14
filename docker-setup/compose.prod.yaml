@@ -1,0 +1,19 @@
+
+name: university-prod
+
+services:
+  front:
+    build:
+      context: ../front
+      dockerfile: dockerfile.prod
+
+    image: university-front:prod
+    container_name: university-front-prod
+
+    ports:
+      - "127.0.0.1:3001:3000"
+
+    environment:
+      NODE_ENV: production
+
+    restart: unless-stopped
