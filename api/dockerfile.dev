@@ -1,0 +1,57 @@
+
+FROM php:8.4-cli-bookworm
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    unzip \
+    libpq-dev \
+    libzip-dev \
+    libicu-dev \
+    libonig-dev \
+    && docker-php-ext-install -j$(nproc) \
+        pdo_pgsql \
+        mbstring \
+        bcmath \
+        intl \
+        zip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+# Configure PHP
+RUN cp "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+
+WORKDIR /app
+
+# Install application dependencies
+COPY composer.json composer.lock ./
+
+RUN composer install \
+    --no-interaction \
+    --prefer-dist \
+    --no-progress \
+    --no-scripts
+
+# Copy application with non-root ownership
+COPY --chown=www-data:www-data . .
+
+# Prepare writable Laravel directories
+RUN mkdir -p \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+    && chown -R www-data:www-data /app
+
+# Run application as non-root user
+USER www-data
+
+# Discover Laravel packages
+RUN php artisan package:discover --ansi
+
+EXPOSE 8000
+
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]

@@ -14,6 +14,28 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
 
+    restart: "no"
+
+    cpus: "2.0"
+    mem_limit: "2g"
+
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - 'fetch("http://127.0.0.1:3000/").then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))'
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+
     environment:
       NODE_ENV: development
       WATCHPACK_POLLING: "true"
@@ -35,3 +57,116 @@ services:
 
         - action: rebuild
           path: ../front/package-lock.json
+
+  api:
+    build:
+      context: ../api
+      dockerfile: dockerfile.dev
+
+    image: university-api:dev
+    container_name: university-api-dev
+
+    env_file:
+      - ../api/.env
+
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: ${POSTGRES_DB:?Missing POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER:?Missing POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Missing POSTGRES_PASSWORD}
+
+    ports:
+      - "127.0.0.1:8000:8000"
+
+    restart: "no"
+
+    cpus: "1.5"
+    mem_limit: "1g"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+    healthcheck:
+      test:
+        - CMD
+        - php
+        - -r
+        - 'exit(@file_get_contents("http://127.0.0.1:8000/up") === false ? 1 : 0);'
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    develop:
+      watch:
+        - action: sync
+          path: ../api
+          target: /app
+          initial_sync: true
+          ignore:
+            - vendor/
+            - .env
+            - .env.*
+            - composer.json
+            - composer.lock
+            - storage/logs/
+            - storage/framework/cache/
+            - storage/framework/sessions/
+            - storage/framework/views/
+
+        - action: rebuild
+          path: ../api/composer.json
+
+        - action: rebuild
+          path: ../api/composer.lock
+
+  db:
+    image: postgres:17-alpine
+    container_name: university-postgres-dev
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Missing POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Missing POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Missing POSTGRES_PASSWORD}
+
+    ports:
+      - "127.0.0.1:5433:5432"
+
+    restart: "no"
+
+    cpus: "1.0"
+    mem_limit: "768m"
+
+    volumes:
+      - university-postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  university-postgres-data:

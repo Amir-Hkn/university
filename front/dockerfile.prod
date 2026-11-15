@@ -1,6 +1,5 @@
-
 # Stage 1: Install dependencies
-FROM node:24-bookworm-slim AS deps
+FROM node:24-alpine AS dependencies
 
 WORKDIR /app
 
@@ -9,22 +8,23 @@ COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
 
-# Stage 2: Build application
-FROM node:24-bookworm-slim AS builder
+# Stage 2: Build Next.js
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=dependencies /app/node_modules ./node_modules
 
 COPY . .
 
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
 
 
 # Stage 3: Production runtime
-FROM node:24-bookworm-slim AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 
@@ -33,15 +33,22 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-RUN mkdir -p .next && chown node:node .next
+# Create non-root user
+RUN addgroup -S nodejs -g 1001 \
+    && adduser -S nextjs -u 1001 -G nodejs
 
-COPY --from=builder --chown=node:node /app/public ./public
+# Prepare writable Next.js cache directory
+RUN mkdir -p .next \
+    && chown nextjs:nodejs .next
 
-COPY --from=builder --chown=node:node /app/.next/standalone ./
+# Copy production output
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 
-USER node
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
 
 EXPOSE 3000
 
