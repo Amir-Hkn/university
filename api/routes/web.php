@@ -10,7 +10,7 @@ Route::get('/docker-test', function () {
     abort_unless(app()->isLocal(), 404);
 
     return response()->json([
-        'message' => 'Laravel Docker Sync works!'
+        'message' => 'Laravel Docker Sync works!',
         'data' => array([
             'name' => 'John Doe',
         ]),
