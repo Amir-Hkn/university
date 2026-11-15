@@ -68,3 +68,31 @@ jobs:
 
       - name: Run Laravel Tests
         run: php artisan test
+
+
+  docker-build:
+    name: Docker Build
+    needs:
+      - frontend-ci
+      - backend-ci
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Check Docker Version
+        run: docker version
+
+      - name: Build Next.js Image
+        run: docker build -f front/dockerfile.prod -t university-front:ci ./front
+
+      - name: Build Laravel Image
+        run: docker build -f api/dockerfile.prod --target app -t university-api:ci ./api
+
+      - name: Build Nginx Image
+        run: docker build -f api/dockerfile.prod --target web -t university-nginx:ci ./api
+
+      - name: List Docker Images
+        run: docker image ls
