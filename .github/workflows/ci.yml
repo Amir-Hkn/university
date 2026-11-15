@@ -1,0 +1,17 @@
+name: University CI
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  first-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Say Hello
+        run: echo "Hello from GitHub Actions!"
+
+      - name: Show OS Information
+        run: uname -a
