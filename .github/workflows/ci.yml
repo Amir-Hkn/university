@@ -70,6 +70,7 @@ jobs:
         run: php artisan test
 
 
+
   docker-build:
     name: Docker Build
     needs:
@@ -82,17 +83,43 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v6
 
-      - name: Check Docker Version
-        run: docker version
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
       - name: Build Next.js Image
-        run: docker build -f front/dockerfile.prod -t university-front:ci ./front
+        uses: docker/build-push-action@v7
+        with:
+          context: ./front
+          file: ./front/dockerfile.prod
+          push: false
+          load: true
+          tags: university-front:ci
+          cache-from: type=gha,scope=university-front
+          cache-to: type=gha,scope=university-front,mode=max
 
       - name: Build Laravel Image
-        run: docker build -f api/dockerfile.prod --target app -t university-api:ci ./api
+        uses: docker/build-push-action@v7
+        with:
+          context: ./api
+          file: ./api/dockerfile.prod
+          target: app
+          push: false
+          load: true
+          tags: university-api:ci
+          cache-from: type=gha,scope=university-api
+          cache-to: type=gha,scope=university-api,mode=max
 
       - name: Build Nginx Image
-        run: docker build -f api/dockerfile.prod --target web -t university-nginx:ci ./api
+        uses: docker/build-push-action@v7
+        with:
+          context: ./api
+          file: ./api/dockerfile.prod
+          target: web
+          push: false
+          load: true
+          tags: university-nginx:ci
+          cache-from: type=gha,scope=university-nginx
+          cache-to: type=gha,scope=university-nginx,mode=max
 
       - name: List Docker Images
         run: docker image ls
