@@ -5,13 +5,22 @@ on:
     branches:
       - development
 
+permissions:
+  contents: read
+
 jobs:
   first-job:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Say Hello
-        run: echo "Hello from GitHub Actions!"
+      - name: Checkout Repository
+        uses: actions/checkout@v6
 
-      - name: Show OS Information
-        run: uname -a
+      - name: Show Working Directory
+        run: pwd
+
+      - name: List Project Files
+        run: ls -la
+
+      - name: Check Project Directories
+        run: ls api front docker-setup
