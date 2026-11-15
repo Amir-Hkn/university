@@ -9,18 +9,30 @@ permissions:
   contents: read
 
 jobs:
-  first-job:
+  frontend-ci:
+    name: Frontend CI
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: front
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
 
-      - name: Show Working Directory
-        run: pwd
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: front/package-lock.json
 
-      - name: List Project Files
-        run: ls -la
+      - name: Install Dependencies
+        run: npm ci
 
-      - name: Check Project Directories
-        run: ls api front docker-setup
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Production Build
+        run: npm run build
