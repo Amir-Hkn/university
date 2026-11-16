@@ -141,3 +141,102 @@ jobs:
             org.opencontainers.image.source=https://github.com/Amir-Hkn/university
           cache-from: type=gha,scope=university-nginx
           cache-to: type=gha,scope=university-nginx,mode=max
+
+  staging-deploy:
+    name: Staging Deployment
+    runs-on: ubuntu-latest
+
+    needs:
+      - docker-build
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
+
+    environment: staging
+
+    permissions:
+      contents: read
+      packages: read
+
+    defaults:
+      run:
+        working-directory: docker-setup
+
+    env:
+      IMAGE_TAG: sha-${{ github.sha }}
+      POSTGRES_DB: university_staging
+      POSTGRES_USER: university_staging
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare Staging Environment
+        run: |
+          DB_PASSWORD="$(openssl rand -hex 24)"
+
+          echo "::add-mask::$DB_PASSWORD"
+          echo "POSTGRES_PASSWORD=$DB_PASSWORD" >> "$GITHUB_ENV"
+
+          APP_KEY="base64:$(openssl rand -base64 32)"
+
+          printf 'APP_KEY=%s\n' "$APP_KEY" > .env.ghcr
+
+      - name: Validate Docker Compose
+        run: docker compose -f compose.ghcr.yaml config --quiet
+
+      - name: Pull Docker Images
+        run: docker compose -f compose.ghcr.yaml pull
+
+      - name: Start PostgreSQL
+        run: |
+          docker compose -f compose.ghcr.yaml up \
+            -d \
+            --wait \
+            --wait-timeout 120 \
+            db
+
+      - name: Run Laravel Migrations
+        run: |
+          docker compose -f compose.ghcr.yaml run \
+            --rm api php artisan migrate --force
+
+      - name: Start Application Services
+        run: |
+          docker compose -f compose.ghcr.yaml up \
+            -d \
+            --wait \
+            --wait-timeout 180
+
+      - name: Verify Application Responses
+        run: |
+          curl --fail --silent --show-error \
+            http://127.0.0.1:8002/up
+
+          curl --fail --silent --show-error \
+            http://127.0.0.1:3003/ > /dev/null
+
+      - name: Show Container Status
+        run: docker compose -f compose.ghcr.yaml ps
+
+      - name: Show Logs on Failure
+        if: failure()
+        run: |
+          docker compose -f compose.ghcr.yaml ps
+
+          docker compose -f compose.ghcr.yaml logs --tail=100
+
+      - name: Cleanup Staging Environment
+        if: always()
+        run: |
+          if [ -n "${POSTGRES_PASSWORD:-}" ]; then
+            docker compose -f compose.ghcr.yaml down \
+              --volumes \
+              --remove-orphans
+          fi

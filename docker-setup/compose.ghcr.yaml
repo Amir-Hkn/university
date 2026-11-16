@@ -2,7 +2,7 @@ name: university-ghcr-test
 
 services:
   front:
-    image: ghcr.io/amir-hkn/university-front:development
+    image: ghcr.io/amir-hkn/university-front:${IMAGE_TAG:-development}
 
     environment:
       NODE_ENV: production
@@ -16,7 +16,7 @@ services:
         condition: service_healthy
 
   api:
-    image: ghcr.io/amir-hkn/university-api:development
+    image: ghcr.io/amir-hkn/university-api:${IMAGE_TAG:-development}
 
     env_file:
       - .env.ghcr
@@ -37,7 +37,7 @@ services:
         condition: service_healthy
 
   nginx:
-    image: ghcr.io/amir-hkn/university-nginx:development
+    image: ghcr.io/amir-hkn/university-nginx:${IMAGE_TAG:-development}
 
     ports:
       - "127.0.0.1:8002:80"
