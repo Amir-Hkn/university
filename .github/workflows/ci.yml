@@ -215,13 +215,75 @@ jobs:
             --wait \
             --wait-timeout 180
 
-      - name: Verify Application Responses
+      - name: Smoke Test - Application
         run: |
-          curl --fail --silent --show-error \
-            http://127.0.0.1:8002/up
+          set -euo pipefail
 
-          curl --fail --silent --show-error \
-            http://127.0.0.1:3003/ > /dev/null
+          echo "Checking Laravel health endpoint..."
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 5 \
+            --retry-delay 2 \
+            --retry-connrefused \
+            http://127.0.0.1:8002/up > /dev/null
+
+          echo "Laravel health endpoint: OK"
+
+          echo "Checking Laravel homepage..."
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 5 \
+            --retry-delay 2 \
+            --retry-connrefused \
+            http://127.0.0.1:8002/ > /dev/null
+
+          echo "Laravel homepage: OK"
+
+          echo "Checking Next.js homepage..."
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 5 \
+            --retry-delay 2 \
+            --retry-connrefused \
+            http://127.0.0.1:3003/ > /tmp/university-frontend.html
+
+          if ! grep -q "The university" /tmp/university-frontend.html; then
+            echo "::error::Expected frontend content was not found."
+            exit 1
+          fi
+
+          echo "Next.js homepage: OK"
+          
+
+      - name: Smoke Test - Database
+        run: |
+          set -euo pipefail
+          
+          echo "Checking Laravel migration status..."
+          
+          MIGRATION_STATUS="$(
+            docker compose -f compose.ghcr.yaml exec -T api \
+              php artisan migrate:status --no-ansi
+          )"
+          
+          printf '%s\n' "$MIGRATION_STATUS"
+          
+          if printf '%s\n' "$MIGRATION_STATUS" | grep -qi "Pending"; then
+            echo "::error::Pending Laravel migrations detected."
+            exit 1
+          fi
+          
+          echo "Database migration status: OK"
+          
 
       - name: Show Container Status
         run: docker compose -f compose.ghcr.yaml ps
