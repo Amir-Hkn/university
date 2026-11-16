@@ -5,6 +5,10 @@ on:
     branches:
       - development
 
+  pull_request:
+    branches:
+      - development
+
 permissions:
   contents: read
 
@@ -37,7 +41,6 @@ jobs:
       - name: Production Build
         run: npm run build
 
-
   backend-ci:
     name: Backend CI
     runs-on: ubuntu-latest
@@ -69,11 +72,9 @@ jobs:
       - name: Run Laravel Tests
         run: php artisan test
 
-
-
-
   docker-build:
     name: Docker Build and Publish
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/development' }}
     needs:
       - frontend-ci
       - backend-ci
