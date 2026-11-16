@@ -288,6 +288,86 @@ jobs:
       - name: Show Container Status
         run: docker compose -f compose.ghcr.yaml ps
 
+      - name: Record Deployment Manifest
+        run: |
+          set -euo pipefail
+
+          FRONT_IMAGE="ghcr.io/amir-hkn/university-front:${IMAGE_TAG}"
+          API_IMAGE="ghcr.io/amir-hkn/university-api:${IMAGE_TAG}"
+          NGINX_IMAGE="ghcr.io/amir-hkn/university-nginx:${IMAGE_TAG}"
+
+          FRONT_DIGEST="$(
+            docker image inspect \
+              --format '{{index .RepoDigests 0}}' \
+              "$FRONT_IMAGE"
+          )"
+
+          API_DIGEST="$(
+            docker image inspect \
+              --format '{{index .RepoDigests 0}}' \
+              "$API_IMAGE"
+          )"
+
+          NGINX_DIGEST="$(
+            docker image inspect \
+              --format '{{index .RepoDigests 0}}' \
+              "$NGINX_IMAGE"
+          )"
+
+          DEPLOYED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          jq -n \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg environment "staging" \
+            --arg commit "$GITHUB_SHA" \
+            --arg image_tag "$IMAGE_TAG" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg deployed_at "$DEPLOYED_AT" \
+            --arg frontend "$FRONT_DIGEST" \
+            --arg backend "$API_DIGEST" \
+            --arg nginx "$NGINX_DIGEST" \
+            '{
+              repository: $repository,
+              environment: $environment,
+              commit_sha: $commit,
+              image_tag: $image_tag,
+              workflow_run_id: $run_id,
+              deployed_at_utc: $deployed_at,
+              images: {
+                frontend: $frontend,
+                backend: $backend,
+                nginx: $nginx
+              }
+            }' > deployment-manifest.json
+
+          {
+            echo "## Staging Deployment"
+            echo ""
+            echo "| Property | Value |"
+            echo "|---|---|"
+            echo "| Environment | staging |"
+            echo "| Commit | \`$GITHUB_SHA\` |"
+            echo "| Image Tag | \`$IMAGE_TAG\` |"
+            echo "| Deployed At (UTC) | $DEPLOYED_AT |"
+            echo ""
+            echo "### Docker Image Digests"
+            echo ""
+            echo "- Frontend: \`$FRONT_DIGEST\`"
+            echo "- Backend: \`$API_DIGEST\`"
+            echo "- Nginx: \`$NGINX_DIGEST\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Deployment manifest created successfully."
+          
+          
+      - name: Upload Deployment Manifest
+        uses: actions/upload-artifact@v7
+        with:
+          name: staging-manifest-${{ github.run_id }}-${{ github.run_attempt }}
+          path: docker-setup/deployment-manifest.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Show Logs on Failure
         if: failure()
         run: |
