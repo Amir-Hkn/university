@@ -1,0 +1,42 @@
+name: University Release Approval Drill
+
+on:
+  push:
+    branches:
+      - development
+
+    paths:
+      - .github/workflows/release-approval-drill.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-approval-drill-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-approval:
+    name: Release Approval Gate
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: release-approval-lab
+
+    steps:
+      - name: Confirm Release Approval
+        run: |
+          echo "Release approval granted."
+          echo "Commit SHA: $GITHUB_SHA"
+          echo "Environment: release-approval-lab"
+          echo "This is a dry run. No production deployment was performed."
+
+          {
+            echo "## Release Approval Drill"
+            echo ""
+            echo "- Environment: release-approval-lab"
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- Result: Approved"
+            echo "- Production deployment: Not performed"
+          } >> "$GITHUB_STEP_SUMMARY"
