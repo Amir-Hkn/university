@@ -9,7 +9,7 @@ services:
       API_INTERNAL_URL: http://nginx
 
     ports:
-      - "127.0.0.1:3003:3000"
+      - "127.0.0.1:${FRONT_HOST_PORT:-3003}:3000"
 
     depends_on:
       nginx:
@@ -52,7 +52,7 @@ services:
     image: ghcr.io/amir-hkn/university-nginx:${IMAGE_TAG:-development}
 
     ports:
-      - "127.0.0.1:8002:80"
+      - "127.0.0.1:${NGINX_HOST_PORT:-8002}:80"
 
     depends_on:
       api:
