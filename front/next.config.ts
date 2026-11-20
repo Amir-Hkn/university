@@ -17,6 +17,13 @@ const nextConfig: NextConfig = {
     },
   },
   output: "standalone",
+  images: {
+    remotePatterns: [
+        new URL('http://localhost:3000/**')
+    ],
+    formats: ['image/avif'],
+    dangerouslyAllowLocalIP: true
+  },
 };
 
 export default nextConfig;
