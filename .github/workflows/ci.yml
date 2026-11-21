@@ -256,8 +256,8 @@ jobs:
             --retry-connrefused \
             http://127.0.0.1:3003/ > /tmp/university-frontend.html
 
-          if ! grep -q "The university" /tmp/university-frontend.html; then
-            echo "::error::Expected frontend content was not found."
+          if ! grep -q 'data-app="university-frontend"' /tmp/university-frontend.html; then
+            echo "::error::University frontend identity marker not found."
             exit 1
           fi
 
