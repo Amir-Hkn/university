@@ -104,6 +104,8 @@ Provider outcome is orthogonal to case status. Match evidence must correspond to
 
 ### 3.4 Provisioning workflow
 
+The application workflow resolves and validates the Student role through Authorization before creating the Identity account with its mandatory role ID. Account provisioning and applicable OTP proof consumption are coordinated within one local transaction. No roleless account may be inserted, and failed provisioning must not leave inconsistent records.
+
 1. Public registration verifies a purpose-bound mobile challenge and validates contact/credential input; server chooses Student.
 2. Application workflow creates Identity account and Authorization primary-role assignment within one local transaction. Failure rolls back both; no externally usable roleless account. OTP proof consumption and replay protection are coordinated so registration cannot be repeated with the same proof.
 3. Student authenticates and completes onboarding/verification; proposed initial program request is validated with Academic before scoped Education review. Academic membership activation is a distinct operation; exact timing/approval semantics OD-001.

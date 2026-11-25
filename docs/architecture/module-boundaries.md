@@ -110,7 +110,7 @@ Use a small application-level workflow coordinator where an invariant spans mult
 
 ### Account and primary role
 
-Provisioning workflow calls Identity to create account and Authorization to assign exactly one role in a transaction. For scoped staff provisioning it validates program references with Academic. Authorization checks before executing protected actions; the role/account atomicity is maintained by the workflow and database constraints selected in the ERD. No Identity → Authorization → Identity cycle.
+Provisioning workflow resolves and validates the primary role through Authorization before invoking Identity to insert the account with its required role ID. Related provisioning operations are coordinated within a single database transaction.
 
 ### Enrollment, grades and tuition
 
