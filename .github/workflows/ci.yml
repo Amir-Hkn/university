@@ -45,6 +45,33 @@ jobs:
     name: Backend CI
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17-alpine
+
+        env:
+          POSTGRES_DB: university_test
+          POSTGRES_USER: university_test
+          POSTGRES_PASSWORD: ci_test_password
+
+        ports:
+          - 5432:5432
+
+        options: >-
+          --health-cmd "pg_isready -U university_test -d university_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: university_test
+      DB_USERNAME: university_test
+      DB_PASSWORD: ci_test_password
+
     defaults:
       run:
         working-directory: api
@@ -67,10 +94,11 @@ jobs:
       - name: Prepare Environment
         run: |
           cp .env.example .env
-          php artisan key:generate --no-interaction
+          cp .env.testing.example .env.testing
+          php artisan key:generate --env=testing --no-interaction
 
       - name: Run Laravel Tests
-        run: php artisan test
+        run: php vendor/bin/pest
 
   docker-build:
     name: Docker Build and Publish
