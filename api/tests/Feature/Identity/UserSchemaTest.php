@@ -155,7 +155,7 @@ test('invalid account statuses are rejected', function () {
 test('account status is cast to an enum', function () {
     $user = User::factory()->create();
 
-    expect($user->status)->toBe(UserStatus::ACTIVE);
+    expect($user->status)->toBe(UserStatus::Active);
 });
 
 test('suspended user factory state works', function () {
