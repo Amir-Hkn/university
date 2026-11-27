@@ -46,6 +46,15 @@ RUN mkdir -p \
         bootstrap/cache \
     && chown -R www-data:www-data /app
 
+
+# Prepare writable PsySH directories for Laravel Tinker
+RUN mkdir -p \
+        /var/www/.config/psysh \
+        /var/www/.local/share/psysh \
+    && chown -R www-data:www-data \
+        /var/www/.config \
+        /var/www/.local
+
 # Run application as non-root user
 USER www-data
 
