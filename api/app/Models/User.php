@@ -44,4 +44,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(OtpChallenge::class);
     }
+
+    public function identityVerificationCases(): HasMany
+    {
+        return $this->hasMany(IdentityVerificationCase::class);
+    }
 }
