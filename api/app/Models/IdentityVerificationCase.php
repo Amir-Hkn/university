@@ -41,4 +41,12 @@ class IdentityVerificationCase extends Model
     {
         return $this->belongsTo(AcademicProgram::class, 'requested_program_id');
     }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(
+            VerificationDocument::class,
+            'case_id'
+        );
+    }
 }
