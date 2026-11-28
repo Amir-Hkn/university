@@ -1,10 +1,8 @@
-# ADR-NNN — Decision Title
+# ADR 0002 — Hybrid Authentication Architecture
 
-- **Status:** Proposed
-- **Recorded:** YYYY-MM-DD
-- **Scope:**
-- **Phase:**
-- **Supersedes:** None
+- **Status:** Accepted
+- **Date:** 2026-11-28
+- **Phase:** 01.03.01 — Hybrid Authentication Architecture
 
 ## Context
 
