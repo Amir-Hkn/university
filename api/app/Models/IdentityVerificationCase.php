@@ -49,4 +49,9 @@ class IdentityVerificationCase extends Model
             'case_id'
         );
     }
+
+    public function providerMatchResults(): HasMany
+    {
+        return $this->hasMany(ProviderMatchResult::class, 'case_id');
+    }
 }
