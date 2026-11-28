@@ -237,3 +237,44 @@ These are future acceptance requirements, not test results. Write required backe
 | API.ir/SMS availability, handling provider failure, no unauthorized fallback; real/fake evidence isolation | Before live integration / Phase 01 |
 
 Review this ERD alongside the Domain Model; revise both documents together if decisions change. Academic relationships and the final permission matrix follow in the remaining Foundation days. No schema or application changes are authorized solely by this draft.
+
+
+## 10. Phase 01.02 — Implemented Schema Baseline
+
+The implemented Identity and Authorization schema contains ten domain tables and one Academic-owned reference table.
+
+### Implementation decisions
+
+- PostgreSQL 17 is the target database.
+- Laravel bigint identifiers are used for primary and foreign keys.
+- Each user has exactly one primary role.
+- Historical relationships use restrictive deletion rules.
+- Staff permission grants support scoped and explicitly global representations.
+- Composite foreign keys prevent grants from referencing another user's program scope.
+- PostgreSQL UNIQUE NULLS NOT DISTINCT prevents duplicate global and scoped grants.
+- OTP contexts use UUID identifiers.
+- OTP purposes are currently registration and login.
+- Non-terminal OTP challenges require a secret verifier.
+- Consumed or invalidated OTP challenges must not retain their verifier.
+- Expired OTP cleanup remains an application workflow responsibility.
+- Identity verification cases support draft, submitted, approved, and rejected states.
+- National identity numbers use Laravel encrypted casts.
+- Verification documents store private storage keys rather than public URLs.
+- Provider results distinguish real evidence from simulated evidence.
+- Manual review decisions are independent of final verification status.
+- Rejected reviews require a nonblank reason. Approval reasons are optional.
+- Case history uses the composite user_id and created_at index.
+
+### Enforcement boundaries
+
+The database enforces structural integrity and row-level constraints. Application services and authorization policies must enforce role eligibility, scope requirements, OTP consumption, replay protection, private file access, submission immutability, evidence validity and atomic verification finalization.
+
+### Migration safety
+
+The schema hardening migration removes retained verifiers from legacy terminal OTP challenges.
+
+Previously removed verifiers must not be restored. Rolling back to the former non-nullable verifier schema is prohibited while records containing cleared verifiers exist.
+
+The users migration also requires an explicit backfill strategy when applied to a populated legacy database.
+
+Destructive migration lifecycle tests must run only against the isolated PostgreSQL testing database.
