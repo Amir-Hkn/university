@@ -115,4 +115,10 @@ test('required academic program attributes cannot be blank', function (string $a
     ['name', '   '],
     ['degree_level', ''],
     ['degree_level', '   '],
+    ['code', "\t"],
+    ['code', "\n"],
+    ['name', "\t"],
+    ['name', "\n"],
+    ['degree_level', "\t"],
+    ['degree_level', "\n"],
 ]);

@@ -291,3 +291,15 @@ test('case attributes are protected from mass assignment', function () {
     expect(fn () => new IdentityVerificationCase($this->caseData))
         ->toThrow(MassAssignmentException::class);
 });
+
+test('verification cases have a composite user history index', function () {
+    expect(Schema::hasIndex(
+        'identity_verification_cases',
+        'ivc_user_created_at_index'
+    ))->toBeTrue();
+
+    expect(Schema::hasIndex(
+        'identity_verification_cases',
+        'identity_verification_cases_user_id_index'
+    ))->toBeFalse();
+});

@@ -143,7 +143,6 @@ test('required columns cannot be null', function (string $column) {
     'destination',
     'purpose',
     'context_id',
-    'secret_verifier',
     'attempts',
     'issued_at',
     'expires_at',
@@ -152,6 +151,7 @@ test('required columns cannot be null', function (string $column) {
 test('challenge cannot be consumed and invalidated simultaneously', function () {
     expect(fn () => DB::table('otp_challenges')->insert([
         ...$this->otpData,
+        'secret_verifier' => null,
         'consumed_at' => $this->issuedAt->copy()->addSeconds(30),
         'invalidated_at' => $this->issuedAt->copy()->addSeconds(40),
     ]))->toThrow(QueryException::class, 'SQLSTATE[23514]');
@@ -160,6 +160,7 @@ test('challenge cannot be consumed and invalidated simultaneously', function () 
 test('consumption outside the validity window is rejected', function (int $offset) {
     expect(fn () => DB::table('otp_challenges')->insert([
         ...$this->otpData,
+        'secret_verifier' => null,
         'consumed_at' => $this->issuedAt->copy()->addSeconds($offset),
     ]))->toThrow(QueryException::class, 'SQLSTATE[23514]');
 })->with([-1, 120, 121]);
@@ -167,6 +168,7 @@ test('consumption outside the validity window is rejected', function (int $offse
 test('consumption within the validity window is accepted', function () {
     $id = DB::table('otp_challenges')->insertGetId([
         ...$this->otpData,
+        'secret_verifier' => null,
         'consumed_at' => $this->issuedAt->copy()->addSeconds(30),
     ]);
 
@@ -176,6 +178,7 @@ test('consumption within the validity window is accepted', function () {
 test('invalidation before issuance is rejected', function () {
     expect(fn () => DB::table('otp_challenges')->insert([
         ...$this->otpData,
+        'secret_verifier' => null,
         'invalidated_at' => $this->issuedAt->copy()->subSecond(),
     ]))->toThrow(QueryException::class, 'SQLSTATE[23514]');
 });
@@ -183,6 +186,7 @@ test('invalidation before issuance is rejected', function () {
 test('challenge can be invalidated', function () {
     $id = DB::table('otp_challenges')->insertGetId([
         ...$this->otpData,
+        'secret_verifier' => null,
         'invalidated_at' => $this->issuedAt->copy()->addSeconds(60),
     ]);
 
@@ -258,4 +262,92 @@ test('secret verifier is hidden during serialization', function () {
 test('otp challenge attributes are protected from mass assignment', function () {
     expect(fn () => new OtpChallenge($this->otpData))
         ->toThrow(MassAssignmentException::class);
+});
+
+
+test('non terminal challenges require a secret verifier', function () {
+    expect(fn () => DB::table('otp_challenges')->insert([
+        ...$this->otpData,
+        'secret_verifier' => null,
+    ]))->toThrow(
+        QueryException::class,
+        'otp_verifier_lifecycle_check'
+    );
+});
+
+test('terminal challenges cannot retain their verifier', function (
+    string $terminalColumn
+) {
+    expect(fn () => DB::table('otp_challenges')->insert([
+        ...$this->otpData,
+        $terminalColumn => $this->issuedAt->copy()->addSeconds(30),
+    ]))->toThrow(
+        QueryException::class,
+        'otp_verifier_lifecycle_check'
+    );
+})->with([
+    'consumed_at',
+    'invalidated_at',
+]);
+
+test('terminal transition requires clearing the verifier', function (
+    string $terminalColumn
+) {
+    $id = DB::table('otp_challenges')->insertGetId(
+        $this->otpData
+    );
+
+    expect(fn () => DB::table('otp_challenges')
+        ->where('id', $id)
+        ->update([
+            $terminalColumn => $this->issuedAt->copy()->addSeconds(30),
+        ]))
+        ->toThrow(
+            QueryException::class,
+            'otp_verifier_lifecycle_check'
+        );
+})->with([
+    'consumed_at',
+    'invalidated_at',
+]);
+
+test('verifier can be cleared with a terminal transition', function (
+    string $terminalColumn
+) {
+    $id = DB::table('otp_challenges')->insertGetId(
+        $this->otpData
+    );
+
+    DB::table('otp_challenges')
+        ->where('id', $id)
+        ->update([
+            'secret_verifier' => null,
+            $terminalColumn => $this->issuedAt->copy()->addSeconds(30),
+        ]);
+
+    $challenge = OtpChallenge::findOrFail($id);
+
+    expect($challenge->secret_verifier)->toBeNull();
+    expect($challenge->{$terminalColumn})->not->toBeNull();
+})->with([
+    'consumed_at',
+    'invalidated_at',
+]);
+
+test('a cleared verifier cannot be restored on a terminal challenge', function () {
+    $id = DB::table('otp_challenges')->insertGetId([
+        ...$this->otpData,
+        'secret_verifier' => null,
+        'consumed_at' => $this->issuedAt->copy()->addSeconds(30),
+    ]);
+
+    expect(fn () => DB::table('otp_challenges')
+        ->where('id', $id)
+        ->update([
+            'secret_verifier' => str_repeat('b', 64),
+        ]))
+        ->toThrow(
+            QueryException::class,
+            'otp_verifier_lifecycle_check'
+        );
 });

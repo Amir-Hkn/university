@@ -112,6 +112,10 @@ test('blank or untrimmed permission codes are rejected', function (string $code)
     '   ',
     ' identity.test',
     'identity.test ',
+    "\t",
+    "\n",
+    "\tidentity.verification.review",
+    "identity.verification.review\n",
 ]);
 
 test('permission code cannot be null', function () {
