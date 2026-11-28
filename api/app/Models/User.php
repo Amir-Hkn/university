@@ -49,4 +49,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(IdentityVerificationCase::class);
     }
+
+
+    public function performedVerificationReviews(): HasMany
+    {
+        return $this->hasMany(VerificationReview::class, 'reviewer_user_id');
+    }
 }

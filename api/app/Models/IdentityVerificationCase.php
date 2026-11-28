@@ -54,4 +54,9 @@ class IdentityVerificationCase extends Model
     {
         return $this->hasMany(ProviderMatchResult::class, 'case_id');
     }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(VerificationReview::class, 'case_id');
+    }
 }
