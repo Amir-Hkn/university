@@ -37,7 +37,6 @@ const Button = (
                 <button
                     type={type}
                     className={`btn-${variant}-${style} ${className} shadow-lg`}
-                    onClick={onClick}
                     disabled={disabled}
                 >{children}</button>
             );
